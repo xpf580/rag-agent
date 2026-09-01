@@ -1,0 +1,11 @@
+streamlit
+python-dotenv
+langchain==0.3.27
+langchain-community==0.3.27
+langchain-huggingface
+langchain-openai
+langchain-text-splitters
+langgraph
+mcp
+sentence-transformers
+faiss-cpu
