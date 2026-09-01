@@ -1,0 +1,36 @@
+{"question":"量化交易的核心目标是什么？","expected_sections":["1. 量化交易概览"]}
+{"question":"量化研究通常包括哪些基本步骤？","expected_sections":["2. 量化研究的基本流程"]}
+{"question":"OHLCV 数据分别表示什么？","expected_sections":["3.1 市场数据"]}
+{"question":"订单簿数据可以反映哪些信息？","expected_sections":["3.1 市场数据"]}
+{"question":"财务报表属于哪一类量化数据？","expected_sections":["3.2 基础面数据"]}
+{"question":"财报发布和利率会议属于什么数据？","expected_sections":["3.3 事件数据"]}
+{"question":"动量因子通常如何构造？","expected_sections":["4.1 动量因子"]}
+{"question":"价值因子常用哪些估值指标？","expected_sections":["4.2 价值因子"]}
+{"question":"质量因子如何衡量公司质量？","expected_sections":["4.3 质量因子"]}
+{"question":"流动性因子有哪些常见指标？","expected_sections":["4.5 流动性因子"]}
+{"question":"Alpha 和 Beta 的区别是什么？","expected_sections":["5. Alpha 与 Beta"]}
+{"question":"最大回撤衡量什么风险？","expected_sections":["6.1 最大回撤","6. 风险管理"]}
+{"question":"Sharpe Ratio 如何衡量策略？","expected_sections":["6.2 Sharpe Ratio"]}
+{"question":"Sortino Ratio 与 Sharpe Ratio 有什么不同？","expected_sections":["6.3 Sortino Ratio"]}
+{"question":"VaR 与 CVaR 的区别是什么？","expected_sections":["6.4 VaR 与 CVaR"]}
+{"question":"为什么需要控制单个资产的仓位？","expected_sections":["6.5 头寸规模与仓位控制"]}
+{"question":"杠杆会带来哪些风险？","expected_sections":["6.6 杠杆与融资成本"]}
+{"question":"回测时为什么要警惕过拟合？","expected_sections":["7.1 过拟合风险"]}
+{"question":"交叉验证在量化研究中有什么作用？","expected_sections":["7.2 交叉验证"]}
+{"question":"滑点和手续费为什么要加入回测？","expected_sections":["8.1 交易成本"]}
+{"question":"执行算法解决什么问题？","expected_sections":["8.2 执行算法"]}
+{"question":"机器学习可以怎样应用于量化交易？","expected_sections":["9. 机器学习在量化中的应用"]}
+{"question":"统计套利属于哪类量化策略？","expected_sections":["10.1 统计套利"]}
+{"question":"多因子策略通常如何构建？","expected_sections":["10.2 多因子策略"]}
+{"question":"高频交易对数据和执行有什么要求？","expected_sections":["10.4 高频交易"]}
+{"question":"量化研究中常见的关键指标有哪些？","expected_sections":["11. 量化研究中的关键指标"]}
+{"question":"量化策略落地时需要关注什么？","expected_sections":["12. 量化策略的落地要求"]}
+{"question":"一个现实可用的知识库应该如何组织？","expected_sections":["18. 一个现实可用的知识库结构"]}
+{"question":"量化交易的本质是什么？","expected_sections":["16. 量化交易的本质"]}
+{"question":"什么是量化交易？","expected_sections":["1. 量化交易概览","16. 量化交易的本质"]}
+{"question":"请介绍量化研究从数据到上线的完整流程。","expected_sections":["2. 量化研究的基本流程","12. 量化策略的落地要求"]}
+{"question":"如何同时控制最大回撤和交易成本？","expected_sections":["6.1 最大回撤","8.1 交易成本"]}
+{"question":"股票的市盈率和 ROE 分别属于什么分析维度？","expected_sections":["3.2 基础面数据","4.2 价值因子","4.3 质量因子"]}
+{"question":"量化交易和烘焙蛋糕的步骤有什么关系？","expected_sections":[],"expect_no_match":true}
+{"question":"美国总统今天是谁？","expected_sections":[],"expect_no_match":true}
+{"question":"如何用 Python 写一个贪吃蛇游戏？","expected_sections":[],"expect_no_match":true}

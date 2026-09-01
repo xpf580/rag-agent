@@ -9,3 +9,5 @@ langgraph
 mcp
 sentence-transformers
 faiss-cpu
+fastapi
+uvicorn

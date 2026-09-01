@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -18,13 +19,18 @@ except ImportError as exc:  # pragma: no cover - depends on optional runtime
 
 
 mcp = FastMCP("local-hybrid-rag")
-agent = RAGAgent()
+
+
+@lru_cache(maxsize=1)
+def get_agent() -> RAGAgent:
+    """Lazily initialize the expensive RAG agent once per MCP process."""
+    return RAGAgent()
 
 
 @mcp.tool()
 def search_knowledge(query: str, k: int = 4) -> list[dict[str, Any]]:
     """Search the local knowledge base and return ranked chunks with sources."""
-    documents = agent.retriever.retrieve(query, k=max(1, min(k, 10)))
+    documents = get_agent().retriever.retrieve(query, k=max(1, min(k, 10)))
     return [
         {
             "content": document.page_content,
@@ -40,7 +46,13 @@ def search_knowledge(query: str, k: int = 4) -> list[dict[str, Any]]:
 @mcp.tool()
 def answer_question(question: str) -> dict[str, Any]:
     """Answer a question with the local RAG agent and include citations."""
-    return agent.answer_with_sources(question)
+    return get_agent().answer_with_sources(question)
+
+
+@mcp.tool()
+def get_knowledge_base_info() -> dict[str, Any]:
+    """Return safe index metadata without exposing documents or credentials."""
+    return get_agent().health()
 
 
 if __name__ == "__main__":

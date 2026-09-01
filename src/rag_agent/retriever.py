@@ -8,7 +8,7 @@ import os
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -35,7 +35,8 @@ def _build_embeddings(model_name: str) -> Any:
     except Exception as exc:
         logger.warning("local Hugging Face embeddings unavailable: %s", exc)
 
-    if os.getenv("OPENAI_API_KEY"):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key and api_key.lower() not in {"replace_me", "your_api_key_here"}:
         try:
             from langchain_openai import OpenAIEmbeddings
         except Exception as exc:
@@ -102,6 +103,7 @@ class LocalKnowledgeRetriever:
         dense_weight: float = 0.6,
         lexical_weight: float = 0.4,
         force_rebuild: bool = False,
+        max_query_chars: int = 400,
     ) -> None:
         self.knowledge_path = Path(knowledge_path) if knowledge_path else None
         self.embedding_model = embedding_model
@@ -110,6 +112,7 @@ class LocalKnowledgeRetriever:
         self.chunk_overlap = chunk_overlap
         self.dense_weight = dense_weight
         self.lexical_weight = lexical_weight
+        self.max_query_chars = max_query_chars
         self.embeddings = _build_embeddings(embedding_model)
         self.documents: list[Document] = []
         self.vectorstore = self._load_or_build(force_rebuild)
@@ -266,18 +269,23 @@ class LocalKnowledgeRetriever:
                 scores[index] = score
         return scores
 
-    def retrieve(self, query: str, k: int = 4) -> list[Document]:
-        """Return documents using reciprocal-rank fusion of dense and lexical scores."""
-        if not query.strip():
+    def retrieve(
+        self,
+        query: str,
+        k: int = 4,
+        mode: Literal["hybrid", "dense", "lexical"] = "hybrid",
+    ) -> list[Document]:
+        """Retrieve chunks with dense, lexical, or fused ranking."""
+        query = query.strip()
+        if not query:
             return []
-        candidate_count = min(max(k * 4, 12), len(self.documents))
-        dense_results = self.vectorstore.similarity_search_with_score(
-            query, k=candidate_count
-        )
-        dense_rank = {
-            doc.metadata["chunk_id"]: rank
-            for rank, (doc, _) in enumerate(dense_results, start=1)
-        }
+        if len(query) > self.max_query_chars:
+            raise ValueError(f"query must not exceed {self.max_query_chars} characters")
+        if mode not in {"hybrid", "dense", "lexical"}:
+            raise ValueError("mode must be hybrid, dense, or lexical")
+        if k < 1 or k > 50:
+            raise ValueError("k must be between 1 and 50")
+
         lexical_scores = self._lexical_scores(query)
         lexical_rank = {
             index: rank
@@ -285,6 +293,19 @@ class LocalKnowledgeRetriever:
                 sorted(lexical_scores.items(), key=lambda item: item[1], reverse=True),
                 start=1,
             )
+        }
+        if mode == "lexical":
+            return [self.documents[index] for index in list(lexical_rank)[:k]]
+
+        candidate_count = min(max(k * 4, 12), len(self.documents))
+        dense_results = self.vectorstore.similarity_search_with_score(
+            query, k=candidate_count
+        )
+        if mode == "dense":
+            return [doc for doc, _ in dense_results[:k]]
+        dense_rank = {
+            doc.metadata["chunk_id"]: rank
+            for rank, (doc, _) in enumerate(dense_results, start=1)
         }
 
         fused: list[tuple[float, Document]] = []
@@ -324,4 +345,5 @@ class LocalKnowledgeRetriever:
             "chunk_overlap": self.chunk_overlap,
             "dense_weight": self.dense_weight,
             "lexical_weight": self.lexical_weight,
+            "max_query_chars": self.max_query_chars,
         }
