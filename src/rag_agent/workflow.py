@@ -19,32 +19,65 @@ class RAGState(TypedDict, total=False):
     context: str
     answer: str
     sources: list[dict[str, Any]]
+    error: str
 
 
 class RAGWorkflow:
-    """Small LangGraph workflow for observable, extensible RAG execution."""
+    """Stateful RAG workflow with validation, retrieval and generation nodes."""
 
-    def __init__(self, retriever: Any, llm: Any, prompt: PromptTemplate | None) -> None:
+    def __init__(
+        self,
+        retriever: Any,
+        llm: Any,
+        prompt: PromptTemplate | None,
+        retrieval_k: int = 4,
+        max_query_chars: int = 400,
+        max_context_chars: int = 12000,
+    ) -> None:
         self.retriever = retriever
         self.llm = llm
         self.prompt = prompt
-        if StateGraph is None:
-            self.graph = None
-            return
+        self.retrieval_k = retrieval_k
+        self.max_query_chars = max_query_chars
+        self.max_context_chars = max_context_chars
+        self.graph = self._build_graph() if StateGraph is not None else None
+
+    def _build_graph(self) -> Any:
         builder = StateGraph(RAGState)
+        builder.add_node("validate", self._validate)
         builder.add_node("retrieve", self._retrieve)
         builder.add_node("generate", self._generate)
-        builder.add_edge(START, "retrieve")
+        builder.add_edge(START, "validate")
+        builder.add_conditional_edges(
+            "validate",
+            self._route_after_validation,
+            {"retrieve": "retrieve", "generate": "generate"},
+        )
         builder.add_edge("retrieve", "generate")
         builder.add_edge("generate", END)
-        self.graph = builder.compile()
+        return builder.compile()
+
+    def _validate(self, state: RAGState) -> dict[str, Any]:
+        question = state.get("question", "").strip()
+        if not question:
+            return {"error": "问题不能为空。", "question": question}
+        if len(question) > self.max_query_chars:
+            return {
+                "error": f"问题长度不能超过 {self.max_query_chars} 个字符。",
+                "question": question[: self.max_query_chars],
+            }
+        return {"question": question, "error": ""}
+
+    @staticmethod
+    def _route_after_validation(state: RAGState) -> str:
+        return "generate" if state.get("error") else "retrieve"
 
     def _retrieve(self, state: RAGState) -> dict[str, Any]:
-        documents = self.retriever.retrieve(state["question"], k=4)
+        documents = self.retriever.retrieve(state["question"], k=self.retrieval_k)
         context = "\n\n".join(
             f"[{index}] {doc.page_content}"
             for index, doc in enumerate(documents, start=1)
-        )
+        )[: self.max_context_chars]
         sources = [
             {
                 "source": doc.metadata.get("source", ""),
@@ -57,28 +90,36 @@ class RAGWorkflow:
         return {"documents": documents, "context": context, "sources": sources}
 
     def _generate(self, state: RAGState) -> dict[str, str]:
+        if state.get("error"):
+            return {"answer": state["error"]}
+        context = state.get("context", "").strip()
+        if not context:
+            return {"answer": "知识库中没有检索到足够相关的信息。"}
         if self.llm is None or self.prompt is None:
-            answer = (
-                "未配置可用的大语言模型。以下是本地知识库中检索到的内容：\n\n"
-                + state.get("context", "")[:3000]
-            )
-        else:
+            return {
+                "answer": "未配置可用的大语言模型。以下是本地知识库中检索到的内容：\n\n"
+                + context[:3000]
+            }
+        try:
             prompt_text = self.prompt.format(
-                context=state.get("context", "无相关上下文"),
+                context=context,
                 question=state["question"],
             )
             response = self.llm.invoke(prompt_text)
             content = getattr(response, "content", response)
             if isinstance(content, list):
                 content = "".join(getattr(item, "text", str(item)) for item in content)
-            answer = str(content).strip()
-        return {"answer": answer}
+            return {"answer": str(content).strip()}
+        except Exception as exc:
+            return {"answer": f"模型调用失败，请稍后重试：{exc}"}
 
     def invoke(self, question: str) -> RAGState:
-        """Execute the graph and return the answer together with source metadata."""
+        """Execute the workflow and return answer, sources and diagnostic state."""
         if self.graph is None:
-            state = {"question": question}
-            state.update(self._retrieve(state))
+            state: RAGState = {"question": question}
+            state.update(self._validate(state))
+            if not state.get("error"):
+                state.update(self._retrieve(state))
             state.update(self._generate(state))
             return state
         return self.graph.invoke({"question": question})

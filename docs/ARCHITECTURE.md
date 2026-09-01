@@ -36,3 +36,8 @@ lexical = 0.4
 - 混合分数。
 
 模型 Prompt 明确要求只依据上下文回答，检索结果不足时说明知识库信息不足。
+
+## Evaluation
+
+`data/evaluation/questions.jsonl` 提供检索回归样例；`scripts/evaluate_retrieval.py`
+分别执行 dense、lexical 和 hybrid 模式，输出 Hit@K、MRR 与 Precision@K。

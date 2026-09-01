@@ -11,6 +11,8 @@
 | Orchestration | `src/rag_agent/workflow.py` | LangGraph retrieve → generate 状态图 |
 | Model adapter | `src/rag_agent/agent.py` | OpenAI-compatible / Ollama 模型适配 |
 | Tool boundary | `mcp_server.py` | MCP `search_knowledge` 与 `answer_question` 工具 |
+| API | `api.py`, `src/rag_agent/api.py` | FastAPI `/health` 和 `/query` 边界 |
+| Evaluation | `src/rag_agent/evaluation.py`, `data/evaluation/` | 无 LLM 的检索回归评测 |
 
 ## Data Flow
 
@@ -28,8 +30,9 @@ data/*.md, data/*.txt
 ## Important Contracts
 
 - `RAGAgent.answer(question) -> str` 保持向后兼容。
-- `RAGAgent.answer_with_sources(question) -> dict` 返回 `answer`、`sources`
+- `RAGAgent.answer_with_sources(question) -> dict` 返回 `answer`、`sources`、`error`
   和检索器运行信息。
+- LangGraph 在生成前执行 query 长度校验，并限制上下文字符预算。
 - `LocalKnowledgeRetriever.retrieve(query, k) -> list[Document]` 返回包含
   `source`、`section`、`chunk_id`、`hybrid_score` 的 Document。
 - `data/faiss_index/manifest.json` 由知识库内容哈希和切分配置决定；
